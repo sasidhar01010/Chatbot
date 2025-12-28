@@ -1,106 +1,148 @@
-# **RAG Workflow with Self-Reflection**  
-*A Streamlit Application for Document-Based Question Answering*
+# 🧠 Self-Reflective RAG with LangGraph & Streamlit
 
-This project leverages **Retrieval-Augmented Generation (RAG)** with **Self-Reflection** to provide precise answers to user queries based on document content. It combines the power of OpenAI's models with a streamlined workflow to retrieve relevant document chunks, generate insightful responses, and continually refine accuracy.
+An intelligent **Question-Answering system with self-correction**.  
+Unlike standard RAG (Retrieval-Augmented Generation) pipelines, this system **evaluates its own retrievals and answers**. If the retrieved documents are irrelevant or the generated answer is a hallucination, the system **automatically rewrites the query and retries**.
 
----
-
-## **Getting Started**
-
-### **Prerequisites**
-- Python 3.7 or higher  
-- An OpenAI API Key  
+Built using **LangChain**, **LangGraph**, **ChromaDB**, and **Streamlit**.
 
 ---
 
-## **Installation Guide**
+# 🚀 Key Features
 
-### **Step 1: Install Required Packages**  
-Run the following command to install the dependencies:
+- 🔁 **Self-Reflection Loop**  
+  Detects hallucinations or irrelevant context and retries automatically.
+
+- ✍️ **Query Transformation**  
+  Rewrites user queries to improve document retrieval quality.
+
+- 📊 **Relevance Grading**  
+  Uses an LLM to judge whether retrieved documents are relevant to the query.
+
+- 🧪 **Hallucination Detection**  
+  Verifies that the generated answer is grounded in retrieved documents.
+
+- 🖥️ **Interactive Streamlit UI**  
+  Displays answers along with the system’s internal reasoning flow.
+
+---
+
+## 🛠️ Architecture
+
+The system follows a **cyclic graph workflow** implemented using **LangGraph**:
+
+```mermaid
+graph TD
+    A[Start] --> B[Retrieve Documents]
+    B --> C{Grade Documents}
+    C -- Relevant --> D[Generate Answer]
+    C -- Irrelevant --> E[Transform Query]
+    E --> B
+    D --> F{Check Hallucination}
+    F -- Grounded & Useful --> G[End / Show Answer]
+    F -- Hallucinated / Not Useful --> E
+````
+
+### Workflow Steps
+
+1. **Retrieve** – Fetches documents using vector search
+2. **Grade** – Checks if documents are relevant
+3. **Transform** – Rewrites the query if retrieval is poor
+4. **Generate** – Produces an answer using grounded context
+5. **Verify** – Confirms the answer is factual and useful
+
+---
+
+## 📋 Prerequisites
+
+* Python **3.9+**
+* An **OpenAI API Key**
+
+---
+
+## 📦 Installation
+
+### 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/self-reflective-rag.git
+cd self-reflective-rag
+```
+
+### 2️⃣ Create a Virtual Environment (Recommended)
+
+```bash
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+```
+
+### 3️⃣ Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### **Step 2: Configure API Key**  
-Update the `.env` file with your OpenAI API key:
+---
 
-```plaintext
-OPENAI_API_KEY = "your-openai-api-key"
+## ⚙️ Configuration
+
+### 🔑 Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+OPENAI_API_KEY=sk-your-openai-api-key
+```
+
+### 📄 Add Your Data
+
+* Place the PDF you want to chat with in the root directory
+* Rename it to **`input.pdf`**
+* The system will automatically ingest and index it on first run
+
+---
+
+## 🏃‍♂️ Usage
+
+Run the Streamlit app:
+
+```bash
+streamlit run app.py
+```
+
+Access the UI at:
+
+```
+http://localhost:8501
 ```
 
 ---
 
-## **How to Use**
+## 📂 Project Structure
 
-1. **Launch the Application**  
-   Start the Streamlit app by running:
-
-   ```bash
-   streamlit run app.py
-   ```
-
-2. **Access the Interface**  
-   Open your browser and navigate to:  
-   **[http://localhost:8501](http://localhost:8501)**
-
-3. **Ask Your Questions**  
-   - Upload a document.
-   - Enter a query in the input field.
-   - Click **"Get Answer"** to receive a response.
+```text
+├── app.py                 # Streamlit UI entry point
+├── main_app.py            # Workflow initialization & orchestration
+├── workflow_manager.py    # LangGraph workflow definition
+├── workflow_nodes.py      # Core logic (Retrieve, Generate, Grade)
+├── prompt_templates.py    # LLM prompts for grading & rewriting
+├── pdf_handler.py         # PDF text extraction
+├── text_processing.py     # Chunking & preprocessing logic
+├── vector_store.py        # ChromaDB setup and retrieval
+├── .env                   # API keys (not committed)
+├── input.pdf              # Source document
+└── requirements.txt       # Dependencies
+```
 
 ---
 
-## **Project Overview**
+## 🔧 Customization
 
-### **Key Features**  
-- **Document Upload**: Easily upload and process documents for analysis.  
-- **Relevant Information Retrieval**: Extracts document chunks pertinent to your query.  
-- **AI-Powered Responses**: Leverages OpenAI's API to generate high-quality, grounded answers.  
-- **Self-Reflection**: Ensures accuracy and relevance in response generation.
+* **Model Selection**
+  Change the model (e.g., GPT-4) in `prompt_templates.py`
 
----
+* **Chunk Size**
+  Modify `chunk_size` in `text_processing.py` (default: 250)
 
-## **File Structure**
+* **Retry Limit**
+  Adjust `recursion_limit` in `app.py` (default: 15)
 
-| **File/Folder**         | **Description**                                              |
-|--------------------------|--------------------------------------------------------------|
-| `app.py`                | Main Streamlit application file.                             |
-| `document_processing.py` | Functions for document parsing and processing.               |
-| `main.py`               | Core workflow logic for RAG.                                 |
-| `nodes.py`              | Definitions for processing nodes in the workflow.            |
-| `pdf_utils.py`          | Utility functions for handling PDF files.                    |
-| `prompts.py`            | Templates for generating query prompts in the RAG workflow.  |
-| `vectorstore.py`        | Vector store management for document retrieval.              |
-| `workflow.py`           | End-to-end RAG workflow implementation.                      |
-| `.env`                  | Environment variables (includes OpenAI API key).             |
-| `requirements.txt`      | List of all required Python packages.                        |
-| `readme.md`             | Project documentation.                                       |
-
----
-
-## **Usage Workflow**
-
-1. **Document Chunking**  
-   Breaks down documents into manageable pieces for vector-based search.
-
-2. **Vector Retrieval**  
-   Leverages vector stores to retrieve document sections relevant to user queries.
-
-3. **Prompt Engineering**  
-   Constructs prompts using retrieved chunks to maximize answer quality.
-
-4. **Answer Generation**  
-   Uses OpenAI's API to craft precise and contextually relevant answers.
-
-5. **Self-Reflection**  
-   Evaluates responses to refine accuracy and improve relevance.
-
----
-
-## **Future Enhancements**
-- Support for additional file types (e.g., Word, Excel).  
-- Advanced analytics to provide insights into user queries.  
-- Integration with alternative vector databases for improved scalability.  
-
-Elevate your document-based question-answering experience with **RAG + Self-Reflection**. 🚀

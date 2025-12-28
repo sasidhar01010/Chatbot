@@ -30,7 +30,9 @@ def create_workflow(retriever):
 
     # Build graph
     workflow.set_entry_point("retrieve")
+    
     workflow.add_edge("retrieve", "grade_documents")
+    
     workflow.add_conditional_edges(
         "grade_documents",
         decide_to_generate,
@@ -39,12 +41,15 @@ def create_workflow(retriever):
             "generate": "generate",
         },
     )
+    
     workflow.add_edge("transform_query", "retrieve")
+    
     workflow.add_conditional_edges(
         "generate",
         grade_generation_v_documents_and_question,
         {
-            "not supported": "generate",
+            # CRITICAL FIX: If hallucination detected, re-query instead of just regenerating
+            "not supported": "transform_query", 
             "useful": END,
             "not useful": "transform_query",
         },

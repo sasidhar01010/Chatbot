@@ -19,33 +19,18 @@ class GraphState(TypedDict):
 def retrieve(state, retriever):
     """
     Retrieves relevant documents for the question in the state using the retriever.
-
-    Args:
-        state (GraphState): The current state of the workflow.
-        retriever (Retriever): The retriever object.
-
-    Returns:
-        dict: The updated state with retrieved documents.
     """
-
     print("---RETRIEVE---")
     question = state["question"]
 
-    # Retrieval
-    documents = retriever.get_relevant_documents(question)
+    # Retrieval (UPDATED from get_relevant_documents)
+    documents = retriever.invoke(question)
     return {"documents": documents, "question": question}
 
 def generate(state):
     """
     Generates a response using the RAG chain.
-
-    Args:
-        state (GraphState): The current state of the workflow.
-
-    Returns:
-        dict: The updated state with the generated response.
     """
-
     print("---GENERATE---")
     question = state["question"]
     documents = state["documents"]
@@ -60,14 +45,7 @@ def generate(state):
 def grade_documents(state):
     """
     Grades the relevance of documents to the question in the state.
-
-    Args:
-        state (GraphState): The current state of the workflow.
-
-    Returns:
-        dict: The updated state with filtered relevant documents.
     """
-
     print("---CHECK DOCUMENT RELEVANCE TO QUESTION---")
     question = state["question"]
     documents = state["documents"]
@@ -76,7 +54,8 @@ def grade_documents(state):
     filtered_docs = []
     for d in documents:
         score = retrieval_grader.invoke({"question": question, "document": d.page_content})
-        grade = score["binary_score"]
+        grade = score.binary_score # Accessing pydantic object attribute directly
+        
         if grade.lower() == "yes":
             print("---GRADE: DOCUMENT RELEVANT---")
             filtered_docs.append(d)
@@ -88,12 +67,6 @@ def grade_documents(state):
 def transform_query(state):
     """
     Transforms the query to a better version optimized for vector store retrieval.
-
-    Args:
-        state (GraphState): The current state of the workflow.
-
-    Returns:
-        dict: The updated state with the transformed query.
     """
     print("---TRANSFORM QUERY---")
     question = state["question"]
@@ -106,14 +79,7 @@ def transform_query(state):
 def decide_to_generate(state):
     """
     Decides whether to generate a response or transform the query based on document relevance.
-
-    Args:
-        state (GraphState): The current state of the workflow.
-
-    Returns:
-        str: The next step in the workflow ("generate" or "transform_query").
     """
-
     print("---ASSESS GRADED DOCUMENTS---")
     filtered_documents = state["documents"]
 
@@ -127,14 +93,7 @@ def decide_to_generate(state):
 def grade_generation_v_documents_and_question(state):
     """
     Grades the generated response against the documents and the question.
-
-    Args:
-        state (GraphState): The current state of the workflow.
-
-    Returns:
-        str: The next step in the workflow ("useful", "not useful", or "not supported").
     """
-
     print("---CHECK HALLUCINATIONS---")
     question = state["question"]
     documents = state["documents"]
@@ -144,14 +103,14 @@ def grade_generation_v_documents_and_question(state):
     formatted_docs = "\n\n".join(doc.page_content for doc in documents)
 
     score = hallucination_grader.invoke({"documents": formatted_docs, "generation": generation})
-    grade = score["binary_score"]
+    grade = score.binary_score
 
     if grade.lower() == "yes":
         print("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         # Check if generation addresses the question
         print("---GRADE GENERATION VS QUESTION---")
         score = answer_grader.invoke({"question": question, "generation": generation})
-        grade = score["binary_score"]
+        grade = score.binary_score
         if grade.lower() == "yes":
             print("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
